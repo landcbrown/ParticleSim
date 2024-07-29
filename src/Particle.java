@@ -1,5 +1,8 @@
 import java.util.List;
-
+/*
+This class creates a Particle object with a radius, mass, position (x,y), and x, y velocity components,
+used to make calculations when collision is detected.
+ */
 public class Particle {
 
     private static final double GRAVITY = 9.8;
@@ -31,8 +34,8 @@ public class Particle {
     public double getMass() {return this.mass;}
 
     //setter methods
-    public void setX(double x) {this.x = x;}
-    public void setY(double y) {this.y = y;}
+    //public void setX(double x) {this.x = x;}
+    //public void setY(double y) {this.y = y;}
     public void setVx(double vx) {this.vx = vx;}
     public void setVy(double vy) {this.vy = vy;}
 

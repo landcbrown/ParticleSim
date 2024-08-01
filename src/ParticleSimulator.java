@@ -10,17 +10,15 @@ public class ParticleSimulator extends JPanel {
 
     public ParticleSimulator() {
 
-        simulator = new Simulator(Constants.SIMULATION_WIDTH, Constants.SIMULATION_HEIGHT);
+        simulator = new Simulator(Constants.SIMULATION_WIDTH, Constants.SIMULATION_HEIGHT, 30);
         Random rand = new Random();
 
         List<Particle> particles = simulator.getParticles();
 
         int i = 0;
-        while (i < 5) {
-            //double radius = randomIntFromRange(20, 50);
-            //double mass = randomIntFromRange(5, 15);
+        while (i < 20) {
 
-            double radius = 75;
+            double radius = 25;
             double mass = 10;
 
             double x = randomIntFromRange((int) radius, (int) (Constants.SIMULATION_WIDTH - radius));

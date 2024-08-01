@@ -34,8 +34,8 @@ public class Particle {
     public double getMass() {return this.mass;}
 
     //setter methods
-    //public void setX(double x) {this.x = x;}
-    //public void setY(double y) {this.y = y;}
+    public void setX(double x) {this.x = x;}
+    public void setY(double y) {this.y = y;}
     public void setVx(double vx) {this.vx = vx;}
     public void setVy(double vy) {this.vy = vy;}
 

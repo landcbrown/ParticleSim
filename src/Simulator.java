@@ -1,3 +1,5 @@
+import javax.swing.*;
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -5,140 +7,158 @@ public class Simulator {
     private final List<Particle> particles;
     private final double width;
     private final double height;
-    private int cellSize;
-    private final List<Particle>[][] grid;
+    private double temperature; // Temperature variable
+    private final double tolerance = 1e-9; // Tolerance for collision detection
+    private boolean isRunning = true; // Flag to stop/start simulation
 
-    @SuppressWarnings("unchecked")
-    public Simulator(double width, double height, int cellSize) {
+    // Constructs a simulator object of width*height with default temperature
+    public Simulator(double width, double height) {
         this.width = width;
         this.height = height;
-        this.cellSize = cellSize;
-        this.particles = new ArrayList<>();
-        int gridWidth = (int) Math.ceil(width / cellSize);
-        int gridHeight = (int) Math.ceil(height / cellSize);
-        this.grid = new ArrayList[gridWidth][gridHeight];
-        for (int i = 0; i < gridWidth; i++) {
-            for (int j = 0; j < gridHeight; j++) {
-                grid[i][j] = new ArrayList<>();
-            }
-        }
+        this.particles = new ArrayList<Particle>();
+        this.temperature = 300; // Default temperature (300K)
+
+        // Create a new thread for simulation
+        new Thread(this::runSimulation).start();
+
+        // Create temperature slider for adjusting the temperature
+        createTemperatureSlider();
     }
 
+    // Adds a particle object to the list of particles
     public void addParticle(Particle p) {
         particles.add(p);
-        int gridX = (int) (p.getX() / cellSize);
-        int gridY = (int) (p.getY() / cellSize);
-        grid[gridX][gridY].add(p);
     }
 
-    public void update(double dt) {
-        // Clear the grid
-        for (List<Particle>[] row : grid) {
-            for (List<Particle> cell : row) {
-                cell.clear();
-            }
-        }
+    // Create a temperature slider using Swing
+    private void createTemperatureSlider() {
+        JFrame frame = new JFrame("Temperature Control");
+        frame.setSize(400, 100);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        // Update particle positions and reinsert them into the grid
+        // Create a slider to control temperature (range from 100K to 1000K)
+        JSlider tempSlider = new JSlider(JSlider.HORIZONTAL, 100, 1000, 300);
+        tempSlider.setMajorTickSpacing(100);
+        tempSlider.setMinorTickSpacing(10);
+        tempSlider.setPaintTicks(true);
+        tempSlider.setPaintLabels(true);
+
+        // Add a listener to update temperature as the slider moves
+        tempSlider.addChangeListener(e -> {
+            temperature = tempSlider.getValue();
+            adjustParticleVelocities();
+        });
+
+        frame.add(tempSlider);
+        frame.setVisible(true);
+    }
+
+    // Adjust particle velocities based on the new temperature
+    private void adjustParticleVelocities() {
+        double scaleFactor = Math.sqrt(temperature / 300.0); // Scale relative to 300K
+
         for (Particle p : particles) {
-            p.updatePos(dt);
-            checkBoundaryCollisions(p);
-            int gridX = (int) (p.getX() / cellSize);
-            int gridY = (int) (p.getY() / cellSize);
-            grid[gridX][gridY].add(p);
+            // Scale the velocities by the square root of the temperature ratio
+            p.setVx(p.getVx() * scaleFactor);
+            p.setVy(p.getVy() * scaleFactor);
         }
+    }
 
-        // Check for collisions
-        for (int i = 0; i < grid.length; i++) {
-            for (int j = 0; j < grid[i].length; j++) {
-                checkParticleCollisions(grid[i][j]);
-                if (i > 0) checkParticleCollisions(grid[i][j], grid[i - 1][j]);
-                if (j > 0) checkParticleCollisions(grid[i][j], grid[i][j - 1]);
-                if (i > 0 && j > 0) checkParticleCollisions(grid[i][j], grid[i - 1][j - 1]);
-                if (i > 0 && j < grid[i].length - 1) checkParticleCollisions(grid[i][j], grid[i - 1][j + 1]);
+    // Main simulation loop
+    private void runSimulation() {
+        double dt = 0.001; // Time step
+
+        while (isRunning) {
+            update(dt);
+            try {
+                Thread.sleep(10); // Sleep to simulate real-time steps
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
     }
 
+    // Update method responsible for updating position of particles at every time step dt
+    // and also for running methods to check and resolve collisions
+    public void update(double dt) {
+        for (Particle p : particles) {
+            p.updatePos(dt); // Update particle position
+            checkBoundaryCollisions(p); // Check and resolve boundary collisions
+        }
+        checkParticleCollisions(); // Check and resolve particle collisions
+    }
+
+    // Check for boundary collisions and resolve them
     private void checkBoundaryCollisions(Particle p) {
-        if (p.getX() - p.getRadius() < 0 || p.getX() + p.getRadius() > width) {
+        // Collision with left or right wall
+        if (p.getX() - p.getRadius() < 0) {
+            p.setVx(-p.getVx());    // Reverse velocity
+        } else if (p.getX() + p.getRadius() > width) {
             p.setVx(-p.getVx());
         }
-        if (p.getY() - p.getRadius() < 0 || p.getY() + p.getRadius() > height) {
+
+        // Collision with top or bottom wall
+        if (p.getY() - p.getRadius() < 0) {
+            p.setVy(-p.getVy());
+        } else if (p.getY() + p.getRadius() > height) {
             p.setVy(-p.getVy());
         }
     }
 
-    private void checkParticleCollisions(List<Particle> cell) {
-        for (int i = 0; i < cell.size(); i++) {
-            for (int j = i + 1; j < cell.size(); j++) {
-                if (collide(cell.get(i), cell.get(j))) {
-                    resolveCollision(cell.get(i), cell.get(j));
+    // Check for collisions between particles and resolve them
+    private void checkParticleCollisions() {
+        for (int i = 0; i < particles.size(); i++) {
+            Particle p1 = particles.get(i);
+            for (int j = i + 1; j < particles.size(); j++) {
+                Particle p2 = particles.get(j);
+                double dx = p1.getX() - p2.getX();
+                double dy = p1.getY() - p2.getY();
+                double distance = Math.sqrt(dx * dx + dy * dy);
+
+                // Check if particles are overlapping (within tolerance)
+                if (distance < p1.getRadius() + p2.getRadius() + tolerance) {
+                    resolveCollision(p1, p2); // Resolve the collision
                 }
             }
         }
     }
 
-    private void checkParticleCollisions(List<Particle> cell1, List<Particle> cell2) {
-        for (Particle p1 : cell1) {
-            for (Particle p2 : cell2) {
-                if (collide(p1, p2)) {
-                    resolveCollision(p1, p2);
-                }
-            }
-        }
-    }
-
-    private boolean collide(Particle p1, Particle p2) {
-        double dx = p1.getX() - p2.getX();
-        double dy = p1.getY() - p2.getY();
-        double distance = Math.sqrt(dx * dx + dy * dy);
-        return distance < p1.getRadius() + p2.getRadius();
-    }
-
+    // Resolve collision between two particles
     private void resolveCollision(Particle p1, Particle p2) {
         double dx = p1.getX() - p2.getX();
         double dy = p1.getY() - p2.getY();
         double distance = Math.sqrt(dx * dx + dy * dy);
 
-        // Normal vector
+        // Normal vector (nx, ny)
         double nx = dx / distance;
         double ny = dy / distance;
 
-        // Move particles apart so they no longer overlap
-        double overlap = p1.getRadius() + p2.getRadius() - distance;
-        double moveP1 = overlap * (p2.getMass() / (p1.getMass() + p2.getMass()));
-        double moveP2 = overlap * (p1.getMass() / (p1.getMass() + p2.getMass()));
-
-        p1.setX(p1.getX() + moveP1 * nx);
-        p1.setY(p1.getY() + moveP1 * ny);
-        p2.setX(p2.getX() - moveP2 * nx);
-        p2.setY(p2.getY() - moveP2 * ny);
-
-        // Tangent vector
+        // Tangent vector (tx, ty)
         double tx = -ny;
         double ty = nx;
 
-        // Dot product tangent
+        // Dot product of velocities with tangent vector
         double dpTan1 = p1.getVx() * tx + p1.getVy() * ty;
         double dpTan2 = p2.getVx() * tx + p2.getVy() * ty;
 
-        // Dot product normal
+        // Dot product of velocities with normal vector
         double dpNorm1 = p1.getVx() * nx + p1.getVy() * ny;
         double dpNorm2 = p2.getVx() * nx + p2.getVy() * ny;
 
-        // Conservation of momentum in 1D
+        // Conservation of momentum in 1D along the normal direction
         double m1 = (dpNorm1 * (p1.getMass() - p2.getMass()) + 2.0 * p2.getMass() * dpNorm2) / (p1.getMass() + p2.getMass());
         double m2 = (dpNorm2 * (p2.getMass() - p1.getMass()) + 2.0 * p1.getMass() * dpNorm1) / (p1.getMass() + p2.getMass());
 
-        // Update velocities
+        // Update velocities of particles
         p1.setVx(tx * dpTan1 + nx * m1);
         p1.setVy(ty * dpTan1 + ny * m1);
         p2.setVx(tx * dpTan2 + nx * m2);
         p2.setVy(ty * dpTan2 + ny * m2);
     }
 
+    // Returns the list of particles
     public List<Particle> getParticles() {
         return particles;
     }
 }
+

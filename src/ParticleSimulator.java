@@ -10,21 +10,25 @@ public class ParticleSimulator extends JPanel {
 
     public ParticleSimulator() {
 
-        simulator = new Simulator(Constants.SIMULATION_WIDTH, Constants.SIMULATION_HEIGHT, 30);
+        simulator = new Simulator(Constants.SIMULATION_WIDTH, Constants.SIMULATION_HEIGHT);
         Random rand = new Random();
 
         List<Particle> particles = simulator.getParticles();
 
         int i = 0;
-        while (i < 20) {
+        while (i < 30) {
+            //double radius = randomIntFromRange(20, 50);
+            //double mass = randomIntFromRange(5, 15);
 
-            double radius = 25;
-            double mass = 10;
+            double radius = 10;
+            double mass = 5;
 
             double x = randomIntFromRange((int) radius, (int) (Constants.SIMULATION_WIDTH - radius));
             double y = randomIntFromRange((int) radius, (int) (Constants.SIMULATION_HEIGHT - radius));
-            double vx = randomIntFromRange((int) rand.nextDouble(-200,-100), (int) rand.nextDouble(100, 200));
-            double vy = randomIntFromRange((int) rand.nextDouble(-200,-100), (int) rand.nextDouble(100, 200));
+            //double vx = randomIntFromRange((int) rand.nextDouble(-200,-100), (int) rand.nextDouble(100, 200));
+            //double vy = randomIntFromRange((int) rand.nextDouble(-200,-100), (int) rand.nextDouble(100, 200));
+            double vx = 20;
+            double vy = 20;
 
             if (i != 0) {
                 for (int j = 0; j < particles.size(); j++) {
